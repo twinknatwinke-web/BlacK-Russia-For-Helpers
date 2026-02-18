@@ -5,8 +5,6 @@ st.title("Подготовка к посту Администратора")
 password = st.sidebar.text_input("Введите пароль:", type="password")
 
 if password == "1234":
-    st.title("Подготовка к посту Администратора")
-
     menu_options = [
         "Выберите раздел...",
         "1. Role Play Термины",
@@ -141,4 +139,5 @@ if password == "1234":
 
 else:
     st.warning("Доступ заблокирован, Введите верный пароль")
+
 
