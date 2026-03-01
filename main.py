@@ -22,7 +22,7 @@ if 'users_db' not in st.session_state:
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
 
-ADMIN_SECRET_KEY = "853597718"
+ADMIN_SECRET_KEY = st.secrets["ADMIN_KEY"]
 
 if st.session_state.current_user is None:
     st.title("Система управления доступом")
@@ -783,3 +783,4 @@ else:
                     u['active'] = not u['active']
                     save_data(st.session_state.users_db)
                     st.rerun()
+
