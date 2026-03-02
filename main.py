@@ -1,27 +1,23 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
-import pandas as pd
+import json
+import os
 
-SPREADSHEET_URL = st.secrets["GSHEETS_URL"]
-conn = st.connection("gsheets", type=GSheetsConnection)
+DB_FILE = "users.json"
 
 
 def load_data():
-    """Загрузка данных из Google Таблицы"""
-
-    try:
-        df = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
-        return df.dropna(subset=['nick'])
-    except:
-        return pd.DataFrame(columns=["nick", "server", "role", "active"])
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
 
-def update_gsheets(df):
-    """Сохранение данных в Google Таблицу"""
-    conn.update(spreadsheet=SPREADSHEET_URL, data=df)
+def save_data(data):
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
-df_init = load_data()
-st.session_state.users_db = df_init.to_dict('records')
+if 'users_db' not in st.session_state:
+    st.session_state.users_db = load_data()
 
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
@@ -29,63 +25,64 @@ if 'current_user' not in st.session_state:
 ADMIN_SECRET_KEY = st.secrets["ADMIN_KEY"]
 
 if st.session_state.current_user is None:
-    st.title("Система подготовки: BLACK RUSSIA")
-    t_login, t_reg = st.tabs(["Вход", "Регистрация"])
+    st.title("Система управления доступом")
+    tab_login, tab_reg = st.tabs(["Вход", "Регистрация"])
 
-    with t_reg:
-        n_nick = st.text_input("Ваш Nick_Name:")
-        n_serv = st.selectbox("Сервер:", ["1. Red", "2. Green", "3. Blue", "4. Yellow", "5. Orange", "6. Purple", "7. Lime", "8. Pink", "9. Cherry", "10. Black", "11. Indigo", "12. White", "13. Magenta", "14. Crimson", "15. Gold", "16. Azure", "17. Platinum", "18. Aqua", "19. Gray", "20. Ice", "21. Chilli", "22. Choco", "23. Moscow", "24. Spb", "25. Ufa", "26. Sochi", "27. Kazan", "28. Samara", "29. Rostov", "30. Anapa", "31. Ekb", "32. Krasnodar", "33. Arzamas", "34. Novosib", "35. Grozny", "36. Saratov", "37. Omsk", "38. Irkutsk", "39. Volgograd", "40. Voronezh", "41. Belgorod", "42. Makhachkala", "43. Vladikavkaz", "44. Vladivostok", "45. Kaliningrad", "46. Chelyabinsk", "47. Krasnoyarsk", "48. Cheboksary", "49. Khabarovsk", "50. Perm", "51. Tula", "52. Ryazan", "53. Murmansk", "54. Penza", "55. Kursk", "56. Arkhangelsk", "57. Orenburg", "58. Kirov", "59. Kemerovo", "60. Tyumen", "61. Tolyatti", "62. Ivanovo", "63. Stavropol", "64. Smolensk", "65. Pskov", "66. Bryansk", "67. Orel", "68. Yaroslavl", "69. Barnaul", "70. Lipetsk", "71. Ulyanovsk", "72. Yakutsk", "73. Tambov", "74. Bratsk", "75. Astrakhan", "76. Chita", "77. Kostroma", "78. Vladimir", "79. Kaluga", "80. Novgorod", "81. Taganrog", "82. Vologda", "83. Tver", "84. Tomsk", "85. Izhevsk", "86. Surgut", "87. Podolsk", "88. Magadan", "89. Cherepovets", "90. Norilsk"])
-        n_role = st.selectbox("Должность:", ["Агент поддержки", "Администратор", "Старший администратор"])
+    with tab_reg:
+        new_nick = st.text_input("Ваш игровой Nick_Name:")
+        new_server = st.selectbox("Ваш сервер:", ["1. Red", "2. Green", "3. Blue", "4. Yellow", "5. Orange", "6. Purple", "7. Lime", "8. Pink", "9. Cherry", "10. Black", "11. Indigo", "12. White", "13. Magenta", "14. Crimson", "15. Gold", "16. Azure", "17. Platinum", "18. Aqua", "19. Gray", "20. Ice", "21. Chilli", "22. Choco", "23. Moscow", "24. Spb", "25. Ufa", "26. Sochi", "27. Kazan", "28. Samara", "29. Rostov", "30. Anapa", "31. Ekb", "32. Krasnodar", "33. Arzamas", "34. Novosib", "35. Grozny", "36. Saratov", "37. Omsk", "38. Irkutsk", "39. Volgograd", "40. Voronezh", "41. Belgorod", "42. Makhachkala", "43. Vladikavkaz", "44. Vladivostok", "45. Kaliningrad", "46. Chelyabinsk", "47. Krasnoyarsk", "48. Cheboksary", "49. Khabarovsk", "50. Perm", "51. Tula", "52. Ryazan", "53. Murmansk", "54. Penza", "55. Kursk", "56. Arkhangelsk", "57. Orenburg", "58. Kirov", "59. Kemerovo", "60. Tyumen", "61. Tolyatti", "62. Ivanovo", "63. Stavropol", "64. Smolensk", "65. Pskov", "66. Bryansk", "67. Orel", "68. Yaroslavl", "69. Barnaul", "70. Lipetsk", "71. Ulyanovsk", "72. Yakutsk", "73. Tambov", "74. Bratsk", "75. Astrakhan", "76. Chita", "77. Kostroma", "78. Vladimir", "79. Kaluga", "80. Novgorod", "81. Taganrog", "82. Vologda", "83. Tver", "84. Tomsk", "85. Izhevsk", "86. Surgut", "87. Podolsk", "88. Magadan", "89. Cherepovets", "90. Norilsk"])
+        role_choice = st.selectbox("Ваша должность:", ["Агент поддержки", "Администратор", "Старший администратор"])
 
-        a_key = ""
-        if n_role == "Старший администратор":
-            a_key = st.text_input("Секретный ключ (для Старших):", type="password")
+        admin_key = ""
+        if role_choice == "Старший администратор":
+            admin_key = st.text_input("Введите ключ Старшей Администрации:", type="password")
 
         if st.button("Зарегистрироваться"):
-            if any(u['nick'] == n_nick for u in st.session_state.users_db):
-                st.error("Пользователь с таким ником уже есть!")
-            elif n_role == "Старший администратор" and a_key != ADMIN_SECRET_KEY:
-                st.error("Неверный административный ключ!")
-            elif "_" not in n_nick:
-                st.error("Ник должен быть в формате Nick_Name!")
+            if any(u['nick'] == new_nick for u in st.session_state.users_db):
+                st.error("Этот ник уже зарегистрирован!")
+            elif role_choice == "Старший администратор" and admin_key != ADMIN_SECRET_KEY:
+                st.error("Неверный секретный ключ!")
+            elif "_" not in new_nick:
+                st.error("Вы забыли добавить '_' в вашем Нике!")
+            elif not new_nick:
+                st.error("Введите ник!")
             else:
-                new_user = {"nick": n_nick, "server": n_serv, "role": n_role, "active": True}
-                df_upd = pd.concat([df_init, pd.DataFrame([new_user])], ignore_index=True)
-                update_gsheets(df_upd)
-                st.session_state.current_user = new_user
-                st.success("Регистрация прошла успешно!")
+                user_data = {"nick": new_nick, "server": new_server, "role": role_choice, "active": True}
+                st.session_state.users_db.append(user_data)
+                save_data(st.session_state.users_db)
+                st.session_state.current_user = user_data
+                st.success("Регистрация завершена!")
                 st.rerun()
 
-    with t_login:
-        l_nick = st.text_input("Введите ваш Nick_Name для входа:")
+    with tab_login:
+        login_nick = st.text_input("Введите ваш Nick_Name:")
         if st.button("Войти"):
-            user = next((u for u in st.session_state.users_db if u['nick'] == l_nick), None)
+            user = next((u for u in st.session_state.users_db if u['nick'] == login_nick), None)
             if user:
                 st.session_state.current_user = user
                 st.rerun()
             else:
-                st.error("Ник не найден в базе данных!")
+                st.error("Пользователь не найден.")
 
 else:
-    current_db = load_data().to_dict('records')
-    user_info = next((u for u in current_db if u['nick'] == st.session_state.current_user['nick']), None)
+    all_users = load_data()
+    db_user = next((u for u in all_users if u['nick'] == st.session_state.current_user['nick']), None)
 
-    if user_info and not user_info['active']:
-        st.error("Ваш доступ временно ограничен (идет обзвон или проверка).")
-        if st.button("Выход"):
+    if db_user and not db_user['active']:
+        st.error(f"Доступ ограничен. Идет обзвон или проходите тест")
+        if st.button("Выйти"):
             st.session_state.current_user = None
             st.rerun()
         st.stop()
 
-    st.sidebar.markdown(f"Аккаунт: {user_info['nick']}")
-    st.sidebar.markdown(f"Роль: {user_info['role']}")
-    if st.sidebar.button("Завершить сессию"):
+    st.sidebar.success(f"Роль: {db_user['role']}")
+    if st.sidebar.button("Выход"):
         st.session_state.current_user = None
         st.rerun()
 
     tabs = ["Правила"]
-    if user_info['role'] == "Старший администратор":
-        tabs.append("🛠️ Админ-панель")
+    if db_user['role'] == "Старший администратор":
+        tabs.append("Админ-панель")
 
     active_tab = st.tabs(tabs)
 
@@ -773,20 +770,18 @@ else:
                 st.write(
                     "Исключение: главный администратор, заместитель главного администратора и специальная администрация")
 
-    if user_info['role'] == "Старший администратор":
+    if db_user['role'] == "Старший администратор":
         with active_tab[-1]:
-            st.subheader("Управление составом")
-            st.info("Вы можете заблокировать доступ агентам на время обзвона.")
-
+            st.subheader("Список пользователей")
             for i, u in enumerate(st.session_state.users_db):
-                if u['nick'] == user_info['nick']: continue
+                if u['nick'] == db_user['nick']: continue
 
                 c1, c2, c3 = st.columns([2, 1, 1])
                 c1.write(f"{u['nick']}")
-                c2.write("Доступ разрешено" if u['active'] else "Доступ запрещено")
+                c2.write("Доступ имеется" if u['active'] else "Доступ закрыт")
 
-                txt = "Забанить" if u['active'] else "Разбанить"
-                if c3.button(txt, key=f"user_btn_{i}"):
+                label = "Забанить" if u['active'] else "Разбанить"
+                if c3.button(label, key=f"btn_{i}"):
                     u['active'] = not u['active']
-                    update_gsheets(pd.DataFrame(st.session_state.users_db))
+                    save_data(st.session_state.users_db)
                     st.rerun()
