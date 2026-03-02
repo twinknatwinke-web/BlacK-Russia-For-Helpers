@@ -7,16 +7,17 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 
 def load_data():
-    """Загрузка данных из Google Sheets"""
+    """Загрузка данных из Google Таблицы"""
+
     try:
-        df = conn.read(spreadsheet=SPREADSHEET_URL)
+        df = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
         return df.dropna(subset=['nick'])
     except:
         return pd.DataFrame(columns=["nick", "server", "role", "active"])
 
 
 def update_gsheets(df):
-    """Синхронизация локальных данных с таблицей Google"""
+    """Сохранение данных в Google Таблицу"""
     conn.update(spreadsheet=SPREADSHEET_URL, data=df)
 
 df_init = load_data()
@@ -28,62 +29,63 @@ if 'current_user' not in st.session_state:
 ADMIN_SECRET_KEY = st.secrets["ADMIN_KEY"]
 
 if st.session_state.current_user is None:
-    st.title("База знаний: Авторизация")
+    st.title("Система подготовки: BLACK RUSSIA")
     t_login, t_reg = st.tabs(["Вход", "Регистрация"])
 
     with t_reg:
-        n_nick = st.text_input("Nick_Name (Пример: Ivan_Ivanov):")
+        n_nick = st.text_input("Ваш Nick_Name:")
         n_serv = st.selectbox("Сервер:", ["1. Red", "2. Green", "3. Blue", "4. Yellow", "5. Orange", "6. Purple", "7. Lime", "8. Pink", "9. Cherry", "10. Black", "11. Indigo", "12. White", "13. Magenta", "14. Crimson", "15. Gold", "16. Azure", "17. Platinum", "18. Aqua", "19. Gray", "20. Ice", "21. Chilli", "22. Choco", "23. Moscow", "24. Spb", "25. Ufa", "26. Sochi", "27. Kazan", "28. Samara", "29. Rostov", "30. Anapa", "31. Ekb", "32. Krasnodar", "33. Arzamas", "34. Novosib", "35. Grozny", "36. Saratov", "37. Omsk", "38. Irkutsk", "39. Volgograd", "40. Voronezh", "41. Belgorod", "42. Makhachkala", "43. Vladikavkaz", "44. Vladivostok", "45. Kaliningrad", "46. Chelyabinsk", "47. Krasnoyarsk", "48. Cheboksary", "49. Khabarovsk", "50. Perm", "51. Tula", "52. Ryazan", "53. Murmansk", "54. Penza", "55. Kursk", "56. Arkhangelsk", "57. Orenburg", "58. Kirov", "59. Kemerovo", "60. Tyumen", "61. Tolyatti", "62. Ivanovo", "63. Stavropol", "64. Smolensk", "65. Pskov", "66. Bryansk", "67. Orel", "68. Yaroslavl", "69. Barnaul", "70. Lipetsk", "71. Ulyanovsk", "72. Yakutsk", "73. Tambov", "74. Bratsk", "75. Astrakhan", "76. Chita", "77. Kostroma", "78. Vladimir", "79. Kaluga", "80. Novgorod", "81. Taganrog", "82. Vologda", "83. Tver", "84. Tomsk", "85. Izhevsk", "86. Surgut", "87. Podolsk", "88. Magadan", "89. Cherepovets", "90. Norilsk"])
         n_role = st.selectbox("Должность:", ["Агент поддержки", "Администратор", "Старший администратор"])
 
         a_key = ""
         if n_role == "Старший администратор":
-            a_key = st.text_input("Ключ доступа:", type="password")
+            a_key = st.text_input("Секретный ключ (для Старших):", type="password")
 
-        if st.button("Создать аккаунт"):
+        if st.button("Зарегистрироваться"):
             if any(u['nick'] == n_nick for u in st.session_state.users_db):
-                st.error("Ник уже занят!")
+                st.error("Пользователь с таким ником уже есть!")
             elif n_role == "Старший администратор" and a_key != ADMIN_SECRET_KEY:
-                st.error("Неверный ключ доступа!")
+                st.error("Неверный административный ключ!")
             elif "_" not in n_nick:
-                st.error("Используйте формат Имя_Фамилия!")
+                st.error("Ник должен быть в формате Nick_Name!")
             else:
                 new_user = {"nick": n_nick, "server": n_serv, "role": n_role, "active": True}
                 df_upd = pd.concat([df_init, pd.DataFrame([new_user])], ignore_index=True)
                 update_gsheets(df_upd)
                 st.session_state.current_user = new_user
-                st.success("Аккаунт создан в облаке!")
+                st.success("Регистрация прошла успешно!")
                 st.rerun()
 
     with t_login:
-        l_nick = st.text_input("Введите ваш Nick_Name:")
-        if st.button("Войти в систему"):
+        l_nick = st.text_input("Введите ваш Nick_Name для входа:")
+        if st.button("Войти"):
             user = next((u for u in st.session_state.users_db if u['nick'] == l_nick), None)
             if user:
                 st.session_state.current_user = user
                 st.rerun()
             else:
-                st.error("Пользователь не найден в базе!")
+                st.error("Ник не найден в базе данных!")
 
 else:
     current_db = load_data().to_dict('records')
     user_info = next((u for u in current_db if u['nick'] == st.session_state.current_user['nick']), None)
 
     if user_info and not user_info['active']:
-        st.error("Доступ временно ограничен Администрацией")
-        if st.button("Выйти"):
+        st.error("Ваш доступ временно ограничен (идет обзвон или проверка).")
+        if st.button("Выход"):
             st.session_state.current_user = None
             st.rerun()
         st.stop()
 
-    st.sidebar.info(f"Аккаунт: {user_info['nick']}\n\nРоль: {user_info['role']}")
+    st.sidebar.markdown(f"Аккаунт: {user_info['nick']}")
+    st.sidebar.markdown(f"Роль: {user_info['role']}")
     if st.sidebar.button("Завершить сессию"):
         st.session_state.current_user = None
         st.rerun()
 
     tabs = ["Правила"]
     if user_info['role'] == "Старший администратор":
-        tabs.append("Админ-панель")
+        tabs.append("🛠️ Админ-панель")
 
     active_tab = st.tabs(tabs)
 
@@ -773,16 +775,18 @@ else:
 
     if user_info['role'] == "Старший администратор":
         with active_tab[-1]:
-            st.subheader("Управление доступом (Google Sheets)")
+            st.subheader("Управление составом")
+            st.info("Вы можете заблокировать доступ агентам на время обзвона.")
+
             for i, u in enumerate(st.session_state.users_db):
                 if u['nick'] == user_info['nick']: continue
 
-                col1, col2, col3 = st.columns([2, 1, 1])
-                col1.write(f"{u['nick']}")
-                col2.write("Доступ разрешено" if u['active'] else "Доступ заблокирован")
+                c1, c2, c3 = st.columns([2, 1, 1])
+                c1.write(f"{u['nick']}")
+                c2.write("Доступ разрешено" if u['active'] else "Доступ запрещено")
 
                 txt = "Забанить" if u['active'] else "Разбанить"
-                if col3.button(txt, key=f"u_{i}"):
+                if c3.button(txt, key=f"user_btn_{i}"):
                     u['active'] = not u['active']
                     update_gsheets(pd.DataFrame(st.session_state.users_db))
                     st.rerun()
