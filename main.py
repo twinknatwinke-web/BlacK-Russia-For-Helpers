@@ -16,8 +16,8 @@ if password == st.secrets["password22"]:
     over_rule = st.selectbox("Главное меню:", menu_options)
 
     if over_rule == "1. Role Play Термины":
-            st.subheader("Список RP терминов")
-            st.info("Нажмите на термин, чтобы увидеть подробности")
+        st.subheader("Список RP терминов")
+        st.info("Нажмите на термин, чтобы увидеть подробности")
 
         with st.expander("RP - RolePlay"):
             st.write(
@@ -692,6 +692,7 @@ if password == st.secrets["password22"]:
 
         else:
             st.warning("Доступ заблокирован. Введите верный пароль для просмотра правил")
+
 
 
 
