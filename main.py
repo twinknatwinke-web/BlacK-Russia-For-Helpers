@@ -1,106 +1,23 @@
 import streamlit as st
-import json
-import os
+st.title("Подготовка к посту Администратора")
 
-DB_FILE = "users.json"
+password = st.sidebar.text_input("Введите пароль для доступа к ответам:", type="password")
 
+if password == "1234":
 
-def load_data():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    menu_options = [
+        "Выберите раздел...",
+        "1. Role Play Термины",
+        "2. Общие правила серверов",
+        "3. Правила и обязанности администрации",
+        "4. Правила ГОСС и ОПГ (основные моменты)"
+    ]
 
+    over_rule = st.selectbox("Главное меню:", menu_options)
 
-def save_data(data):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-if 'users_db' not in st.session_state:
-    st.session_state.users_db = load_data()
-
-if 'current_user' not in st.session_state:
-    st.session_state.current_user = None
-
-ADMIN_SECRET_KEY = st.secrets["ADMIN_KEY"]
-
-if st.session_state.current_user is None:
-    st.title("Система управления доступом")
-    tab_login, tab_reg = st.tabs(["Вход", "Регистрация"])
-
-    with tab_reg:
-        new_nick = st.text_input("Ваш игровой Nick_Name:")
-        new_server = st.selectbox("Ваш сервер:", ["1. Red", "2. Green", "3. Blue", "4. Yellow", "5. Orange", "6. Purple", "7. Lime", "8. Pink", "9. Cherry", "10. Black", "11. Indigo", "12. White", "13. Magenta", "14. Crimson", "15. Gold", "16. Azure", "17. Platinum", "18. Aqua", "19. Gray", "20. Ice", "21. Chilli", "22. Choco", "23. Moscow", "24. Spb", "25. Ufa", "26. Sochi", "27. Kazan", "28. Samara", "29. Rostov", "30. Anapa", "31. Ekb", "32. Krasnodar", "33. Arzamas", "34. Novosib", "35. Grozny", "36. Saratov", "37. Omsk", "38. Irkutsk", "39. Volgograd", "40. Voronezh", "41. Belgorod", "42. Makhachkala", "43. Vladikavkaz", "44. Vladivostok", "45. Kaliningrad", "46. Chelyabinsk", "47. Krasnoyarsk", "48. Cheboksary", "49. Khabarovsk", "50. Perm", "51. Tula", "52. Ryazan", "53. Murmansk", "54. Penza", "55. Kursk", "56. Arkhangelsk", "57. Orenburg", "58. Kirov", "59. Kemerovo", "60. Tyumen", "61. Tolyatti", "62. Ivanovo", "63. Stavropol", "64. Smolensk", "65. Pskov", "66. Bryansk", "67. Orel", "68. Yaroslavl", "69. Barnaul", "70. Lipetsk", "71. Ulyanovsk", "72. Yakutsk", "73. Tambov", "74. Bratsk", "75. Astrakhan", "76. Chita", "77. Kostroma", "78. Vladimir", "79. Kaluga", "80. Novgorod", "81. Taganrog", "82. Vologda", "83. Tver", "84. Tomsk", "85. Izhevsk", "86. Surgut", "87. Podolsk", "88. Magadan", "89. Cherepovets", "90. Norilsk"])
-        role_choice = st.selectbox("Ваша должность:", ["Агент поддержки", "Администратор", "Старший администратор"])
-
-        admin_key = ""
-        if role_choice == "Старший администратор":
-            admin_key = st.text_input("Введите ключ Старшей Администрации:", type="password")
-
-        if st.button("Зарегистрироваться"):
-            if any(u['nick'] == new_nick for u in st.session_state.users_db):
-                st.error("Этот ник уже зарегистрирован!")
-            elif role_choice == "Старший администратор" and admin_key != ADMIN_SECRET_KEY:
-                st.error("Неверный секретный ключ!")
-            elif "_" not in new_nick:
-                st.error("Вы забыли добавить '_' в вашем Нике!")
-            elif not new_nick:
-                st.error("Введите ник!")
-            else:
-                user_data = {"nick": new_nick, "server": new_server, "role": role_choice, "active": True}
-                st.session_state.users_db.append(user_data)
-                save_data(st.session_state.users_db)
-                st.session_state.current_user = user_data
-                st.success("Регистрация завершена!")
-                st.rerun()
-
-    with tab_login:
-        login_nick = st.text_input("Введите ваш Nick_Name:")
-        if st.button("Войти"):
-            user = next((u for u in st.session_state.users_db if u['nick'] == login_nick), None)
-            if user:
-                st.session_state.current_user = user
-                st.rerun()
-            else:
-                st.error("Пользователь не найден.")
-
-else:
-    all_users = load_data()
-    db_user = next((u for u in all_users if u['nick'] == st.session_state.current_user['nick']), None)
-
-    if db_user and not db_user['active']:
-        st.error(f"Доступ ограничен. Идет обзвон или проходите тест")
-        if st.button("Выйти"):
-            st.session_state.current_user = None
-            st.rerun()
-        st.stop()
-
-    st.sidebar.success(f"Роль: {db_user['role']}")
-    if st.sidebar.button("Выход"):
-        st.session_state.current_user = None
-        st.rerun()
-
-    tabs = ["Правила"]
-    if db_user['role'] == "Старший администратор":
-        tabs.append("Админ-панель")
-
-    active_tab = st.tabs(tabs)
-
-    with active_tab[0]:
-        st.title("Подготовка к Администратору")
-        menu_options = [
-            "Выберите раздел...",
-            "1. Role Play Термины",
-            "2. Общие правила серверов",
-            "3. Правила и обязанности администрации",
-            "4. Правила ГОСС и ОПГ (основные моменты)"
-        ]
-
-        over_rule = st.selectbox("Раздел:", menu_options)
-
-        if over_rule == "1. Role Play Термины":
-            st.subheader("Список RP терминов")
-            st.info("Нажмите на термин, чтобы увидеть подробности")
+    if over_rule == "1. Role Play Термины":
+        st.subheader("Список RP терминов")
+        st.info("Нажмите на термин, чтобы увидеть подробности")
 
             with st.expander("RP - RolePlay"):
                 st.write(
@@ -770,18 +687,8 @@ else:
                 st.write(
                     "Исключение: главный администратор, заместитель главного администратора и специальная администрация")
 
-    if db_user['role'] == "Старший администратор":
-        with active_tab[-1]:
-            st.subheader("Список пользователей")
-            for i, u in enumerate(st.session_state.users_db):
-                if u['nick'] == db_user['nick']: continue
+        elif over_rule != "Выберите раздел...":
+            st.write(f"Раздел '{over_rule}' находится в разработке")
 
-                c1, c2, c3 = st.columns([2, 1, 1])
-                c1.write(f"{u['nick']}")
-                c2.write("Доступ имеется" if u['active'] else "Доступ закрыт")
-
-                label = "Забанить" if u['active'] else "Разбанить"
-                if c3.button(label, key=f"btn_{i}"):
-                    u['active'] = not u['active']
-                    save_data(st.session_state.users_db)
-                    st.rerun()
+        else:
+            st.warning("Доступ заблокирован. Введите верный пароль для просмотра правил")
