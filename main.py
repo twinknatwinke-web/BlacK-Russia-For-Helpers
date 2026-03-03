@@ -3,7 +3,7 @@ st.title("Подготовка к посту Администратора")
 
 password = st.sidebar.text_input("Введите пароль для доступа к ответам:", type="password")
 
-if password == st.secrets["password"]:
+if password == st.secrets["password22"]:
 
     menu_options = [
         "Выберите раздел...",
@@ -692,4 +692,5 @@ if password == st.secrets["password"]:
 
         else:
             st.warning("Доступ заблокирован. Введите верный пароль для просмотра правил")
+
 
